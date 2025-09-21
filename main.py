@@ -41,9 +41,14 @@ def add_watermark(image_path, output_path, text, font_size=20, font_color=(255, 
         
         # 尝试加载字体，如果失败则使用默认字体
         try:
-            font = ImageFont.truetype('arial.ttf', font_size)  # 在Windows上使用Arial字体
+            # 在Windows上使用完整的Arial字体路径
+            if os.name == 'nt':  # Windows系统
+                font = ImageFont.truetype('C:/Windows/Fonts/arial.ttf', font_size)
+            else:
+                # 非Windows系统尝试其他字体
+                font = ImageFont.truetype('arial.ttf', font_size)
         except IOError:
-            # 在不同平台上可能需要调整字体名称
+            # 在不同平台上尝试其他常见字体
             try:
                 font = ImageFont.truetype('/System/Library/Fonts/PingFang.ttc', font_size)  # macOS
             except IOError:
@@ -54,8 +59,16 @@ def add_watermark(image_path, output_path, text, font_size=20, font_color=(255, 
                     font = ImageFont.load_default()
                     print("警告: 无法加载指定字体，使用默认字体")
         
-        # 获取文本大小
-        text_width, text_height = draw.textsize(text, font=font)
+        # 获取文本大小 - 兼容新版Pillow
+        # 注意：Pillow 8.0.0+中textsize方法已废弃，改用getbbox方法
+        try:
+            # 尝试使用font.getbbox (Pillow 8.0.0+)
+            bbox = font.getbbox(text)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+        except AttributeError:
+            # 对于旧版Pillow使用draw.textsize
+            text_width, text_height = draw.textsize(text, font=font)
         
         # 根据位置确定文本的放置位置
         if position == 'top_left':
